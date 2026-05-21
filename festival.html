@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>축제 | K-FESTIVAL</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f0ede6;--card-bg:#fff;--text:#1a1a1a;--text-mid:#555;--text-light:#888;--border:#ddd8ce;--primary:#c0392b;--gold:#c8922a;--radius:12px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);}
+  .page-header{padding:36px 40px 0;max-width:1200px;margin:0 auto;}
+  .page-header h1{font-size:2rem;font-weight:700;margin-bottom:6px;}
+  .page-header p{font-size:0.88rem;color:var(--text-mid);}
+  .filters{max-width:1200px;margin:20px auto 0;padding:0 40px;display:flex;flex-direction:column;gap:10px;}
+  .filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .filter-label{font-size:0.75rem;color:var(--text-light);min-width:36px;flex-shrink:0;}
+  .fbtn{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-size:0.75rem;font-family:'Noto Sans KR',sans-serif;cursor:pointer;color:var(--text-mid);transition:all .15s;}
+  .fbtn:hover{border-color:var(--primary);color:var(--primary);}
+  .fbtn.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700;}
+  .search-row{display:flex;align-items:center;gap:8px;}
+  .search-input{flex:1;max-width:340px;padding:7px 14px;border:1.5px solid var(--border);border-radius:20px;font-size:0.82rem;font-family:'Noto Sans KR',sans-serif;outline:none;background:#fff;}
+  .search-input:focus{border-color:var(--primary);}
+  .section-header{max-width:1200px;margin:24px auto 14px;padding:0 40px;display:flex;align-items:center;gap:10px;}
+  .section-title{font-size:1.15rem;font-weight:700;}
+  .section-count{font-size:0.8rem;color:var(--text-light);}
+  .card-grid{max-width:1200px;margin:0 auto;padding:0 40px 60px;display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+  .card{border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;background:var(--card-bg);position:relative;}
+  .card:hover{transform:translateY(-5px);box-shadow:0 10px 30px rgba(0,0,0,.15);}
+  .card-thumb{width:100%;aspect-ratio:3/4;overflow:hidden;position:relative;}
+  .card-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .3s;}
+  .card:hover .card-thumb img{transform:scale(1.05);}
+  .no-img{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.78rem;color:rgba(255,255,255,.9);font-weight:700;text-align:center;padding:12px;line-height:1.5;}
+  .card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 55%,transparent 100%);}
+  .card-text{position:absolute;bottom:0;left:0;right:0;padding:10px;}
+  .card-name{font-size:0.82rem;font-weight:700;color:#fff;line-height:1.35;margin-bottom:5px;}
+  .card-date{font-size:0.62rem;color:rgba(255,255,255,.85);margin-bottom:2px;}
+  .card-loc{font-size:0.62rem;color:rgba(255,255,255,.7);}
+  .badge{position:absolute;font-size:0.58rem;font-weight:700;padding:2px 6px;border-radius:4px;z-index:2;}
+  .badge-region{top:8px;left:8px;background:rgba(0,0,0,.55);color:#fff;}
+  .badge-new{top:8px;right:8px;background:var(--primary);color:#fff;}
+  .card-link{text-decoration:none;}
+  .empty{text-align:center;padding:80px 20px;color:var(--text-light);grid-column:1/-1;font-size:.9rem;}
+  @media(max-width:1100px){.card-grid{grid-template-columns:repeat(4,1fr);}}
+  @media(max-width:860px){.card-grid{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:600px){.card-grid{grid-template-columns:repeat(2,1fr);padding:0 14px 40px;}.page-header,.filters,.section-header{padding-left:14px;padding-right:14px;}.page-header h1{font-size:1.4rem;}}
+</style>
+</head>
+<body>
+<div class="page-header">
+  <h1>🗺️ 전국 축제</h1>
+  <p>전국의 다양한 축제를 만나보세요</p>
+</div>
+<div class="filters">
+  <div class="filter-row"><span class="filter-label">지역</span><div id="regionFilter"></div></div>
+  <div class="filter-row"><span class="filter-label">월별</span><div id="monthFilter" style="display:flex;flex-wrap:wrap;gap:8px;"></div></div>
+  <div class="search-row"><input class="search-input" type="text" placeholder="축제명·장소 검색..." id="searchInput" oninput="render()"></div>
+</div>
+<div class="section-header">
+  <span class="section-title" id="sectionTitle">🗓️ 전체 축제</span>
+  <span class="section-count" id="sectionCount"></span>
+</div>
+<div class="card-grid" id="cardGrid"></div>
+
+<script>
+// 이미지 기본 경로 — GitHub 저장소에서 src/assets/ 위치에 맞게 조정
+const ASSET_BASE = 'src/assets/';
+
+const PALETTE=["linear-gradient(160deg,#c0392b,#8b1a1a)","linear-gradient(160deg,#1a4a8a,#0d2a5c)","linear-gradient(160deg,#2d6a27,#1a4a1a)","linear-gradient(160deg,#6a1a8a,#3a0d5c)","linear-gradient(160deg,#c8922a,#8b6010)","linear-gradient(160deg,#1a7a8a,#0d4a5c)","linear-gradient(160deg,#8a5a1a,#5c3a0d)","linear-gradient(160deg,#5a8a2a,#3a5c1a)","linear-gradient(160deg,#c07090,#8a4060)","linear-gradient(160deg,#3a5a8a,#1a2a5c)"];
+function pal(i){return PALETTE[i%PALETTE.length];}
+
+const FESTIVALS=[
+  {id:160,title:"제31회 서울리빙디자인페어",date:"2026.02.25 ~ 03.01",startDate:"2026-02-25",loc:"서울 강남구 코엑스 Hall A,B,C,D",region:"서울",url:"https://www.livingdesignfair.com/",desc:"대한민국 최대 라이프스타일 전시회",poster:"28c596a3d5ddbf502b307124b1c93b933ebaba3e.png"},
+  {id:159,title:"2026 대한민국 밤산업 박람회",date:"2026.02.04 ~ 02.08",startDate:"2026-02-04",loc:"충청남도 공주시 금강신관공원",region:"충청",url:"https://www.gongju.go.kr/",desc:"대한민국 밤의 모든 것",poster:"9e599f9bd449050f26fc4635f443d22a603b6edd.png"},
+  {id:158,title:"양평 빙어 축제",date:"2025.12.06 ~ 2026.03.02",startDate:"2025-12-06",loc:"경기도 양평군",region:"경기",url:"https://www.yp21.go.kr/",desc:"겨울철 가족 나들이 명소",poster:"33477872188de2b5a2dc16f0698ff6a2bf07b5b5.png"},
+  {id:157,title:"코리아빌드위크 2026",date:"2026.02.04 ~ 02.07",startDate:"2026-02-04",loc:"경기도 고양시 킨텍스(KINTEX)",region:"경기",url:"https://www.koreabuildweek.com/",desc:"대한민국 대표 건설·건축·인테리어 전문 전시회",poster:"84a9dab71ba8c7c94f700e9a9db1eedca3318205.png"},
+  {id:56,title:"제54회 강진 청자축제",date:"2026.02.21 ~ 03.02",startDate:"2026-02-21",loc:"전남 강진군 대구면 고려청자박물관 일원",region:"전라",url:"https://gangjin.go.kr/",desc:"흙과 불 그리고 사람의 이야기",poster:"ad61af35495fb5325d39b3db22a22dd94f14adbf.png"},
+  {id:55,title:"제52회 MOM & BABY EXPO",date:"2026.02.26 ~ 03.01",startDate:"2026-02-26",loc:"경기 고양시 일산 KINTEX",region:"경기",url:"https://www.yuarim.com/",desc:"임신·출산·육아 원스톱 박람회",poster:"5c1f0fb3441e624c511f60f094212fbcc7510c0f.png"},
+  {id:54,title:"ILLUSTRATION KOREA 2026",date:"2026.02.27 ~ 03.01",startDate:"2026-02-27",loc:"대구 엑스코(EXCO)",region:"경상",url:"https://www.messeesano.com/",desc:"일러스트레이션의 깊이를 탐구하는 전시",poster:"e15eccd6564fa4628f2f315360b7519c639adc69.png"},
+  {id:53,title:"Blues Alive 2026",date:"2026.02.27 ~ 03.02",startDate:"2026-02-27",loc:"서울 전역 블루스 클럽 및 공연장",region:"서울",url:"https://bluesalive.net/",desc:"서울의 밤을 블루스로 물들이는 축제",poster:"7ceac91e88969daa8406c0671a5988cb946e658c.png"},
+  {id:52,title:"2026 D AWARDS with upick",date:"2026.02.11",startDate:"2026-02-11",loc:"서울 성북구 고려대학교 화정체육관",region:"서울",url:"https://www.korea.ac.kr/",desc:"혁신적인 디자인과 크리에이티브를 만나는 시상식",poster:"6773f4e3e99c99e3da746ba7cfb041229d144038.png"},
+  {id:51,title:"제34회 대관령 눈꽃축제",date:"2026.02.13 ~ 02.22",startDate:"2026-02-13",loc:"강원 평창군 대관령면",region:"강원",url:"https://www.pyeongchang.go.kr/",desc:"설국의 낭만이 가득한 대관령 겨울 축제",poster:"4d372012fd7a31a38dc2ff00db2c6dab8c653927.png"},
+  {id:63,title:"ITZY 3RD WORLD TOUR SEOUL",date:"2026.02.13 ~ 02.15",startDate:"2026-02-13",loc:"서울 송파구 잠실 실내체육관",region:"서울",url:"https://www.melon.com/",desc:"글로벌 K-POP 그룹 ITZY 서울 공연",poster:"e992de68556e3d888c3cf85b330b868e00f014a6.png"},
+  {id:62,title:"KOZ SEOUL 2026 오디션 투어",date:"2026.02.07 ~ 02.08",startDate:"2026-02-07",loc:"서울 용산구 공나무홀",region:"서울",url:"https://www.kozentertainment.com/",desc:"차세대 K-POP 스타 발굴 오디션",poster:"9757f5cac16c30d28f9b7b5da1aa4102ec4aa916.png"},
+  {id:61,title:"뽀로로 가족뮤지컬",date:"2026.02.07 ~ 03.02",startDate:"2026-02-07",loc:"서울 강남구 KT&G 상상마당 대치아트홀",region:"서울",url:"https://tickets.interpark.com/",desc:"뽀로로와 친구들의 신비한 여행",poster:"1250642dbff46ded037358ef9da0f4c5a6313fa2.png"},
+  {id:148,title:"2026 대한민국 조경·정원 박람회",date:"2026.01.29 ~ 02.01",startDate:"2026-01-29",loc:"서울 강남구 COEX",region:"서울",url:"https://www.korealandscapeexpo.com/",desc:"국내 최대 조경·정원 전문 박람회",poster:"0465cef308f46b6e91a3edd0ea1757842ba987e6.png"},
+  {id:141,title:"2026 대한민국선거박람회",date:"2026.01.22 ~ 01.25",startDate:"2026-01-22",loc:"서울 강남구 SETEC 제2전시장",region:"서울",url:"https://www.kefo.or.kr/",desc:"선거 산업 종합 박람회",poster:"c57c449cc6266b76bcc870b3c33b2c752a4c129e.png"},
+  {id:149,title:"제14회 홍천강 꽁꽁축제",date:"2026.01.09 ~ 01.25",startDate:"2026-01-09",loc:"강원 홍천군 홍천강변",region:"강원",url:"https://www.hongcheon.go.kr/",desc:"강원도 겨울축제의 대표주자",poster:"380e1cabaf171743530a524abf0e4088f90e93f3.png"},
+  {id:143,title:"2026 화천산천어축제",date:"2026.01.10 ~ 02.01",startDate:"2026-01-10",loc:"강원 화천군 화천읍 일원",region:"강원",url:"https://www.narafestival.com/",desc:"세계 최고의 겨울축제",poster:"1c2bcd0de7ccc9aefbc7bc371c7725f10f5f147d.png"},
+  {id:150,title:"지브리 영화음악 콘서트 스페셜",date:"2026.01.03",startDate:"2026-01-03",loc:"대전 서구 대전예술의전당 앙상블홀",region:"충청",url:"https://www.stage-m.kr/",desc:"지브리 명작 OST 감성 여행",poster:"b058378511357299b34b9b6bc57eb0a22ed34a27.png"},
+  {id:146,title:"제22회 서울 아시테지 겨울축제",date:"2025.12.26 ~ 2026.01.04",startDate:"2025-12-26",loc:"서울 종로구 대학로극장 외 5개 극장",region:"서울",url:"https://www.assitejkorea.org/",desc:"어린이 청소년 예술공연 축제",poster:"875b281b741b823795619283a4920dde18a8d49e.png"},
+  {id:147,title:"2025 제야의 종 타종행사",date:"2025.12.31 ~ 2026.01.01",startDate:"2025-12-31",loc:"서울 종로구 보신각",region:"서울",url:"https://www.seoul.go.kr/",desc:"새해를 여는 서울의 전통",poster:"77b2511fe2f70307551b07acf05390861e22ed37.png"},
+  {id:144,title:"제3회 은천천 빛축제",date:"2025.12.19 ~ 2026.02.01",startDate:"2025-12-19",loc:"경기 수원시 수안초등학교 및 은천천 일원",region:"경기",url:"https://www.suwon.go.kr/",desc:"빛과 음악으로 물들이는 겨울밤의 낭만",poster:"4b72cbca568f7e3de1f5a596a30166302e4bb517.png"},
+  {id:145,title:"겨울엔 양평",date:"2025.12.01 ~ 2026.01.31",startDate:"2025-12-01",loc:"경기 양평군 전역",region:"경기",url:"https://www.yp.go.kr/",desc:"매력 양평에서 행복하게 겨울나기",poster:"226421a09c0276051bece8969bfce7d88797d5e6.png"},
+  {id:142,title:"안산 겨울빛의 나라",date:"2025.12.07 ~ 2026.01.31",startDate:"2025-12-07",loc:"경기 안산시 단원구 안산문화광장",region:"경기",url:"https://www.ansanart.com/",desc:"광장의 밤, 빛으로 물들다",poster:"c32cf9e542972e372501f4bba25414b9e3cc2463.png"},
+  {id:135,title:"2025 서울빛초롱축제",date:"2025.12.01 ~ 12.31",startDate:"2025-12-01",loc:"서울 중구 청계천 일원",region:"서울",url:"https://www.seoul.go.kr/",desc:"청계천을 수놓는 화려한 등불",poster:"2001d4f0fdd03c8ba4cb223f1ae57adaf6bacccf.png"},
+  {id:140,title:"2025 구리빛축제",date:"2025.12.10 ~ 12.31",startDate:"2025-12-10",loc:"경기 구리시 한강시민공원 구리지구",region:"경기",url:"https://www.guri.go.kr/",desc:"한강을 밝히는 겨울 빛축제",poster:"4ef9c4e3ca8c76762488cdd0ce0aa881752cf27e.png"},
+  {id:139,title:"2025 지브리&디즈니 OST 콘서트",date:"2025.12.21 ~ 12.23",startDate:"2025-12-21",loc:"서울 송파구 롯데콘서트홀",region:"서울",url:"https://www.lotteconcerthall.com/",desc:"추억의 애니메이션 명곡 오케스트라",poster:"516c259106cbb54ee424c5e7a10378ad8c41bd96.png"},
+  {id:138,title:"2025 수성빛예술제",date:"2025.12.05 ~ 12.31",startDate:"2025-12-05",loc:"대구 수성구 수성못 일원",region:"경상",url:"https://www.suseong.kr/",desc:"수성못을 수놓는 빛의 예술",poster:"c7abd9dacacebec7bbaff3faef0ade66465ed3ed.png"},
+  {id:137,title:"2025 서울겨울축제 페스타",date:"2025.12.20 ~ 12.31",startDate:"2025-12-20",loc:"서울 영등포구 여의도공원",region:"서울",url:"https://www.seoul.go.kr/",desc:"서울의 겨울을 즐기다",poster:"f7aa883212de683df73db848c5a0098f075180e6.png"},
+  {id:136,title:"2025 부산어린이책축제",date:"2025.12.11 ~ 12.14",startDate:"2025-12-11",loc:"부산 해운대구 벡스코",region:"부산",url:"https://www.busan.go.kr/",desc:"아이들의 상상력을 키우는 책의 나라",poster:"c2133e36dbda53ca8fac274d039d3b0040e7a0a5.png"},
+  {id:134,title:"2025 G-DRAGON 월드투어 서울",date:"2025.12.14 ~ 12.15",startDate:"2025-12-14",loc:"서울 송파구 KSPO DOME",region:"서울",url:"https://www.ygfamily.com/",desc:"K-POP 황제의 귀환",poster:"eb92cc4d1d7fae34a8c071cb571d9c7549871976.png"},
+  {id:133,title:"2025 인천 연말 콘서트",date:"2025.12.20 ~ 12.31",startDate:"2025-12-20",loc:"인천 중구 인천종합문화예술회관",region:"인천",url:"https://www.incheon.go.kr/",desc:"한 해를 마무리하는 감성 콘서트",poster:"983eee9db6b7f0371c6821ab1b33a36dea1c1501.png"},
+  {id:132,title:"2025 호두까기인형 발레 공연",date:"2025.12.13 ~ 12.25",startDate:"2025-12-13",loc:"서울 서초구 예술의전당",region:"서울",url:"https://www.sac.or.kr/",desc:"크리스마스의 클래식 차이콥스키 발레",poster:"857fd3024336673bfe160086d14ada27b022dc63.png"},
+  {id:131,title:"2025 광화문 크리스마스 마켓",date:"2025.12.06 ~ 12.25",startDate:"2025-12-06",loc:"서울 종로구 광화문광장",region:"서울",url:"https://www.seoul.go.kr/",desc:"서울 한복판 유럽풍 크리스마스 마켓",poster:"7e5077c279401792644748ad00ce00b0d9ed6512.png"},
+  {id:130,title:"2025 부산일러스트레이션페어",date:"2025.11.14 ~ 11.16",startDate:"2025-11-14",loc:"부산 해운대구 벡스코",region:"부산",url:"https://www.busan.go.kr/",desc:"아시아 최대 일러스트레이션 박람회",poster:"757d3beac9faf1359a377d6bb539ef456943964a.png"},
+  {id:129,title:"2025 제주올레걷기축제",date:"2025.11.07 ~ 11.09",startDate:"2025-11-07",loc:"제주 서귀포시 올레길 일원",region:"제주",url:"https://www.jejuolle.org/",desc:"제주의 아름다움을 걷다",poster:"f822c04368c4a81401960368b5a40c010aee767d.png"},
+  {id:128,title:"2025 고흥유자축제",date:"2025.11.07 ~ 11.09",startDate:"2025-11-07",loc:"전남 고흥군 고흥읍 유자테마공원",region:"전라",url:"https://www.goheung.go.kr/",desc:"황금빛 유자의 고장 고흥",poster:"291b5a98c51c1406ba842b0f3ff010ca5b27386d.png"},
+  {id:127,title:"2025 리산김치축제",date:"2025.11.01 ~ 11.03",startDate:"2025-11-01",loc:"전남 리산군 김치문화관",region:"전라",url:"https://www.lisan.go.kr/",desc:"한국의 맛, 김치의 모든 것",poster:"104ffee4853734eaa7c7a2f5fdbe4e8e6852542a.png"},
+  {id:126,title:"2025 순천만콘텐츠코리아랩페스티벌",date:"2025.10.25 ~ 10.26",startDate:"2025-10-25",loc:"전남 순천시 순천만습지",region:"전라",url:"https://www.suncheon.go.kr/",desc:"자연과 기술의 융합",poster:"d901febcb327f80d6274e0e6aaaacc387e2892c3.png"},
+  {id:125,title:"2025 고파도국화축제",date:"2025.10.25 ~ 11.02",startDate:"2025-10-25",loc:"전남 신안군 고파도 국화전시장",region:"전라",url:"https://www.shinan.go.kr/",desc:"섬을 수놓는 화려한 국화의 향연",poster:"5e5d30f83e677b69602f265e7fa0bb3ecec162fd.png"},
+  {id:124,title:"2025 파주장단콩축제",date:"2025.10.24 ~ 10.26",startDate:"2025-10-24",loc:"경기 파주시 장단면 콩축제장",region:"경기",url:"https://www.paju.go.kr/",desc:"DMZ 청정지역 장단콩 축제",poster:"224a849783719a72d036c38810ac34298b68127d.png"},
+  {id:123,title:"2025 순창장류축제",date:"2025.10.17 ~ 10.19",startDate:"2025-10-17",loc:"전북 순창군 순창읍 장류축제장",region:"전라",url:"https://www.sunchang.go.kr/",desc:"전통 장의 고장 순창",poster:"b45ba47568c2c9ba0a38e10f121509d9e4713ebd.png"},
+  {id:122,title:"2025 나주영산강수묵문화페스티벌",date:"2025.10.17 ~ 10.19",startDate:"2025-10-17",loc:"전남 나주시 왕곡면 영산강 일원",region:"전라",url:"https://www.naju.go.kr/",desc:"먹과 종이로 그려내는 한국의 정신",poster:"4defe427ccd60f3302ffedcb30e06b0a9ae2c67d.png"},
+  {id:121,title:"2025 창수위우랑축제",date:"2025.10.10 ~ 10.12",startDate:"2025-10-10",loc:"전북 창수군 창수읍 위우랑공원",region:"전라",url:"https://www.changsu.go.kr/",desc:"신라 화랑의 정신을 계승",poster:"7d42e10998a55ae8e41f755ae0c6d839b647c9b4.png"},
+  {id:120,title:"2025 여주오곡나루축제",date:"2025.10.10 ~ 10.12",startDate:"2025-10-10",loc:"경기 여주시 여주천 일원",region:"경기",url:"https://www.yeoju.go.kr/",desc:"오곡백과의 고장 여주",poster:"8f778eb7a611c2f59e4f947cbb3a4ab2f03cd48f.png"},
+  {id:119,title:"2025 해미읍성문화축제",date:"2025.10.03 ~ 10.05",startDate:"2025-10-03",loc:"충남 서산시 해미면 해미읍성",region:"충청",url:"https://www.seosan.go.kr/",desc:"조선시대로의 시간여행",poster:"d8c47b806193a09fb61378895261818679f568ba.png"},
+  {id:118,title:"2025 구미라면페스타",date:"2025.10.03 ~ 10.05",startDate:"2025-10-03",loc:"경북 구미시 산동면 금오산 일원",region:"경상",url:"https://www.gumi.go.kr/",desc:"한국 라면의 성지 구미",poster:"dd569d45c86a491b0512523d1af1cd8fea8df6ce.png"},
+  {id:117,title:"2025 임실N치즈축제",date:"2025.10.02 ~ 10.05",startDate:"2025-10-02",loc:"전북 임실군 임실읍 치즈테마파크",region:"전라",url:"https://www.imsil.go.kr/",desc:"대한민국 치즈의 메카 임실",poster:"589c8b805dca135163101c170849c2ab14095674.png"},
+  {id:116,title:"2025 김제지평선축제",date:"2025.10.01 ~ 10.05",startDate:"2025-10-01",loc:"전북 김제시 부량면 벽골제 일원",region:"전라",url:"https://www.gimje.go.kr/",desc:"드넓은 김제 평야의 풍요로움",poster:"431734e37f2560ba1bb975186fd94354f8904491.png"},
+  {id:115,title:"2025 정선아리랑제",date:"2025.10.01 ~ 10.05",startDate:"2025-10-01",loc:"강원 정선군 정선읍 아우라지",region:"강원",url:"https://www.jeongseon.go.kr/",desc:"유네스코 무형문화유산 정선아리랑",poster:"139a30f545b4618092966e05a0638ce0c0c14a41.png"},
+  {id:1,title:"2025 서울건자페스티벌",date:"2025.10.18 ~ 10.19",startDate:"2025-10-18",loc:"서울 광화문광장 일원",region:"서울",url:"https://www.seoul.go.kr/",desc:"장애인과 비장애인이 함께 만드는 포용적 문화축제",poster:"4b307a360c45b3a50aa94bfc5340067ec6cbf742.png"},
+  {id:82,title:"2025 서울무형문화축제",date:"2025.10.18 ~ 10.19",startDate:"2025-10-18",loc:"서울 중구 남산골한옥마을",region:"서울",url:"https://www.seoul.go.kr/",desc:"살아있는 우리의 무형문화재",poster:"0ed1e7ad41f53fcfa07fdeab8d2d93b7720d8a34.png"},
+  {id:70,title:"2025 월드 웹툰 페스티벌",date:"2025.10.19 ~ 10.22",startDate:"2025-10-19",loc:"서울 송파구 롯데월드타워 잠실",region:"서울",url:"https://www.kocca.kr/",desc:"세계 웹툰이 한자리에",poster:"17a050c723db79ca9acf4ed0a9ad41272591f994.png"},
+  {id:9,title:"2025 서울라이트 한강 빛섬축제",date:"2025.10.03 ~ 10.12",startDate:"2025-10-03",loc:"서울 영등포구 여의도한강공원",region:"서울",url:"https://www.seoul.go.kr/",desc:"빛의 스펙트럼으로 물든 한강",poster:"ee90204fe0ef1955919330542ec43af69cc2746b.png"},
+  {id:10,title:"제3회 세계판소리축제",date:"2025.10.08 ~ 10.09",startDate:"2025-10-08",loc:"서울 중구 남산골한옥마을",region:"서울",url:"https://www.pansori.org/",desc:"유네스코 무형문화유산 판소리의 세계화",poster:"3ff98e86e29beac82b365631573780bb75f34b2a.png"},
+  {id:114,title:"2025 공주백제문화제",date:"2025.09.27 ~ 10.05",startDate:"2025-09-27",loc:"충남 공주시 금성동 공산성 일원",region:"충청",url:"https://www.gongju.go.kr/",desc:"백제 고도 공주의 역사를 체험하다",poster:"7a2d966065a679af29d4d4d76cd919bcd32a8eef.png"},
+  {id:8,title:"2025 ATAF 아시아탑아티스트페스티벌",date:"2025.09.27 ~ 09.28",startDate:"2025-09-27",loc:"서울 강동구 난지한강공원",region:"서울",url:"https://www.ataf.kr/",desc:"아시아 최고의 아티스트들이 한자리에",poster:"f7835fe52a14f013972c9a7f3fef9b009b5e9714.png"},
+  {id:113,title:"2025 금산세계인삼엑스포",date:"2025.09.26 ~ 10.19",startDate:"2025-09-26",loc:"충남 금산군 금산읍 인삼엑스포공원",region:"충청",url:"https://www.geumsan.go.kr/",desc:"세계 인삼의 중심 금산",poster:"a224d9122107a6a8e6683e79bcbdd48245c957a9.png"},
+  {id:112,title:"2025 백제문화제",date:"2025.09.25 ~ 10.05",startDate:"2025-09-25",loc:"충남 부여군 부여읍 백제문화단지",region:"충청",url:"https://www.baekje.org/",desc:"찬란한 백제의 문화를 재현하다",poster:"d7ff7a146e6503854f1a72cd13a82718d7a8da21.png"},
+  {id:5,title:"2025 서울국제작가축제",date:"2025.09.12 ~ 09.17",startDate:"2025-09-12",loc:"서울 용산구 그라운드서울",region:"서울",url:"https://www.siwf.or.kr/",desc:"세계의 작가들이 모여 문학의 눈으로 세상을 바라보다",poster:"5c9e8b365ddb9b3b49ba905b2a3ef4bca2f824c2.png"},
+  {id:7,title:"2025 프리즈서울",date:"2025.09.03 ~ 09.06",startDate:"2025-09-03",loc:"서울 강남구 코엑스",region:"서울",url:"https://www.frieze.com/fairs/frieze-seoul",desc:"세계 최고의 현대미술 페어",poster:"065ebf911d8a892384f24d2af5edbd13ba1977b1.png"},
+  {id:6,title:"2025 키아프서울",date:"2025.09.03 ~ 09.07",startDate:"2025-09-03",loc:"서울 강남구 코엑스",region:"서울",url:"https://kiaf.org/",desc:"대한민국 대표 아트페어",poster:"d25094a9e5361c45ac1e78f40ddaa0d2395e7327.png"},
+  {id:110,title:"2025 DMZ평화생명동산 에코페스티벌",date:"2025.09.19 ~ 09.21",startDate:"2025-09-19",loc:"강원 철원군 DMZ평화생명동산",region:"강원",url:"https://www.cwg.go.kr/",desc:"분단을 넘어 생명으로",poster:"6ed7ce4fe535d3f67b9ed57464ca646f0f0ea57e.png"},
+  {id:111,title:"2025 상주세계유교문화축전",date:"2025.09.19 ~ 09.22",startDate:"2025-09-19",loc:"경북 상주시 도남동 경천섬 일원",region:"경상",url:"https://www.sangju.go.kr/",desc:"유교 문화의 본향",poster:"1c596c674c29bf2d75b5e0bcb58d03020fe01f4e.png"},
+  {id:109,title:"2025 보은야행 대추축제",date:"2025.09.11 ~ 09.14",startDate:"2025-09-11",loc:"충북 보은군 보은읍 삼산리 일원",region:"충청",url:"https://www.boeun.go.kr/",desc:"달빛 아래 펼쳐지는 대추 이야기",poster:"89912823a410fd9f43f83cdbe3b3648e82deff71.png"},
+  {id:108,title:"2025 안산대부포도축제",date:"2025.09.05 ~ 09.14",startDate:"2025-09-05",loc:"경기 안산시 단원구 대부황금로 일원",region:"경기",url:"https://www.ansan.go.kr/",desc:"달콤한 포도의 향연",poster:"7d847daee77ef562ffd70399cf253e29cbab136f.png"},
+  {id:107,title:"2025 괴산고추축제",date:"2025.09.04 ~ 09.07",startDate:"2025-09-04",loc:"충북 괴산군 괴산읍 유기농엑스포공원 일원",region:"충청",url:"https://www.goesan.go.kr/",desc:"괴산 고추의 매력을 느끼다",poster:"cb990fcf689b9d9775509bb5da1e77e3a63c5c0c.png"},
+  {id:106,title:"2025 광명동굴 명동축제",date:"2025.08.15 ~ 08.24",startDate:"2025-08-15",loc:"경기 광명시 가학동 광명동굴",region:"경기",url:"https://www.gm.go.kr/",desc:"동굴 속 빛의 향연",poster:"febdc13cfb5e7027a8951508094bd28d3fba0183.png"},
+  {id:105,title:"2025 포천드론축구축제",date:"2025.08.08 ~ 08.10",startDate:"2025-08-08",loc:"경기 포천시 소흘읍 포천종합운동장",region:"경기",url:"https://www.pocheon.go.kr/",desc:"미래 스포츠의 새로운 장",poster:"b3751117b512af7a320004281f857581f2769e3e.png"},
+  {id:104,title:"2025 보령머드축제",date:"2025.07.18 ~ 07.27",startDate:"2025-07-18",loc:"충남 보령시 신흑동 대천해수욕장",region:"충청",url:"https://www.boryeong.go.kr/mud/",desc:"세계가 사랑하는 대한민국 대표 여름축제",poster:"b28e3c6c83524a101c7db31afd73a8012f602c13.png"},
+  {id:103,title:"2025 하동어린이생태음식문화축제",date:"2025.05.02 ~ 05.05",startDate:"2025-05-02",loc:"경남 하동군 화개면 차문화센터 일원",region:"경상",url:"https://www.hadong.go.kr/",desc:"아이들이 만드는 건강한 먹거리",poster:"1dd48c05d9bc76270007332a2b88bc4e0eb2eab4.png"},
+  {id:102,title:"2025 김해분청도자기축제",date:"2025.04.25 ~ 05.05",startDate:"2025-04-25",loc:"경남 김해시 진례면 분청도자관 일원",region:"경상",url:"https://www.gimhae.go.kr/",desc:"조선의 미를 담은 분청사기",poster:"7f0d736b1c7c5d07e2e83f1afddeda0273060d9b.png"},
+  {id:101,title:"2025 경남고성공룡세계엑스포",date:"2025.04.11 ~ 06.08",startDate:"2025-04-11",loc:"경남 고성군 하이면 공룡세계엑스포장",region:"경상",url:"https://www.goseong.go.kr/dino/",desc:"1억 년 전 공룡시대로의 시간여행",poster:"ad144e05704d655cc9f10fa4848bd34c36aac3d4.png"}
+];
+
+const REGIONS=["전체","서울","경기","인천","강원","충청","전라","경상","부산","제주"];
+let selRegion="전체",selMonth=0;
+
+function getMonthKey(f){const d=f.startDate.match(/(\d{4})-(\d{2})/);return d?parseInt(d[1])*100+parseInt(d[2]):0;}
+
+function buildFilters(){
+  document.getElementById('regionFilter').innerHTML=REGIONS.map(r=>
+    `<button class="fbtn${selRegion===r?' active':''}" onclick="selRegion='${r}';buildFilters();render()">${r}</button>`
+  ).join(' ');
+  const months=[...new Set(FESTIVALS.map(f=>getMonthKey(f)).filter(Boolean))].sort((a,b)=>b-a);
+  document.getElementById('monthFilter').innerHTML=
+    `<button class="fbtn${selMonth===0?' active':''}" onclick="selMonth=0;buildFilters();render()">전체</button>`+
+    months.map(mk=>{const y=Math.floor(mk/100),m=mk%100;return`<button class="fbtn${selMonth===mk?' active':''}" onclick="selMonth=${mk};buildFilters();render()">${y}.${String(m).padStart(2,'0')}</button>`;}).join('');
+}
+
+function render(){
+  const q=document.getElementById('searchInput').value.trim();
+  const filtered=FESTIVALS.filter(f=>{
+    if(selRegion!=="전체"&&f.region!==selRegion)return false;
+    if(selMonth!==0&&getMonthKey(f)!==selMonth)return false;
+    if(q&&!f.title.includes(q)&&!f.loc.includes(q))return false;
+    return true;
+  });
+  const y=Math.floor(selMonth/100),m=selMonth%100;
+  document.getElementById('sectionTitle').textContent=selMonth?`🗓️ ${y}년 ${m}월 ${selRegion!=='전체'?selRegion+' ':''}축제`:selRegion!=='전체'?`📍 ${selRegion} 축제`:'🗓️ 전체 축제';
+  document.getElementById('sectionCount').textContent=`총 ${filtered.length}건`;
+  const grid=document.getElementById('cardGrid');
+  if(!filtered.length){grid.innerHTML='<div class="empty">해당 조건의 축제 정보가 없습니다.</div>';return;}
+  grid.innerHTML=filtered.map((f,i)=>`
+    <a class="card card-link" href="${f.url}" target="_blank" rel="noopener">
+      <div class="card-thumb">
+        <img src="${ASSET_BASE}${f.poster}" alt="${f.title}" loading="lazy" onerror="this.style.display='none';this.parentNode.querySelector('.no-img').style.display='flex'">
+        <div class="no-img" style="background:${pal(i)};display:none">${f.title}</div>
+        <div class="card-overlay"></div>
+        <span class="badge badge-region">${f.region}</span>
+        <div class="card-text">
+          <div class="card-name">${f.title}</div>
+          <div class="card-date">🗓 ${f.date}</div>
+          <div class="card-loc">📍 ${f.loc}</div>
+        </div>
+      </div>
+    </a>`).join('');
+}
+
+// admin.html에서 등록한 축제 불러오기
+function loadAdminFestivals(){
+  try{
+    const saved=localStorage.getItem('admin_festivals');
+    if(saved){
+      const arr=JSON.parse(saved);
+      arr.forEach(f=>{if(!FESTIVALS.find(x=>x.id===f.id)){FESTIVALS.unshift(f);}});
+    }
+  }catch(e){}
+}
+
+loadAdminFestivals();
+buildFilters();
+render();
+
+window.addEventListener('message',e=>{
+  if(e.data&&e.data.type==='ADD_FESTIVAL'){FESTIVALS.unshift(e.data.festival);buildFilters();render();}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>축제 등록 | K-FESTIVAL Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f5f4f0;--card:#fff;--primary:#c0392b;--gold:#c8922a;--border:#ddd;--text:#1a1a1a;--light:#888;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  .top-bar{background:var(--primary);padding:14px 32px;display:flex;align-items:center;gap:12px;}
+  .top-bar h1{font-size:1rem;font-weight:700;color:#fff;}
+  .top-bar span{font-size:0.75rem;color:rgba(255,255,255,.7);}
+
+  .wrap{max-width:860px;margin:32px auto;padding:0 24px 60px;display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+
+  .panel{background:var(--card);border-radius:10px;padding:24px;border:1px solid var(--border);}
+  .panel-title{font-size:0.95rem;font-weight:700;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid var(--primary);}
+
+  label{display:block;font-size:0.78rem;font-weight:600;color:var(--light);margin-bottom:4px;margin-top:14px;}
+  label:first-of-type{margin-top:0;}
+  input,select,textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;
+    font-size:0.82rem;font-family:'Noto Sans KR',sans-serif;outline:none;transition:border-color .15s;}
+  input:focus,select:focus,textarea:focus{border-color:var(--primary);}
+  textarea{resize:vertical;min-height:60px;}
+
+  .check-row{display:flex;gap:16px;margin-top:6px;}
+  .check-row label{font-size:0.8rem;color:var(--text);font-weight:400;margin:0;display:flex;align-items:center;gap:6px;}
+  .check-row input[type=checkbox]{width:auto;}
+
+  .btn-submit{width:100%;margin-top:20px;padding:12px;background:var(--primary);color:#fff;
+    border:none;border-radius:8px;font-size:0.9rem;font-weight:700;
+    font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:background .15s;}
+  .btn-submit:hover{background:#a02020;}
+
+  /* 등록 목록 패널 */
+  .list-panel{grid-column:1/-1;}
+  .festival-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .festival-item:last-child{border-bottom:none;}
+  .fi-color{width:36px;height:48px;border-radius:5px;flex-shrink:0;}
+  .fi-info{flex:1;}
+  .fi-name{font-size:0.88rem;font-weight:700;margin-bottom:3px;}
+  .fi-meta{font-size:0.72rem;color:var(--light);line-height:1.6;}
+  .fi-badges{display:flex;gap:5px;margin-top:4px;}
+  .fi-badge{font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:3px;color:#fff;}
+  .badge-region{background:#555;}
+  .badge-new{background:var(--primary);}
+  .badge-pick{background:var(--gold);}
+  .fi-del{background:none;border:1px solid var(--border);border-radius:5px;
+    font-size:0.72rem;cursor:pointer;padding:4px 10px;color:var(--light);white-space:nowrap;flex-shrink:0;}
+  .fi-del:hover{border-color:var(--primary);color:var(--primary);}
+
+  .empty-msg{text-align:center;padding:32px;color:var(--light);font-size:0.85rem;}
+
+  .copy-section{margin-top:14px;}
+  .copy-box{background:#f8f8f8;border:1px solid var(--border);border-radius:6px;
+    padding:12px;font-size:0.72rem;font-family:monospace;white-space:pre-wrap;
+    max-height:200px;overflow-y:auto;color:#333;}
+  .btn-copy{margin-top:8px;padding:8px 16px;background:#333;color:#fff;border:none;
+    border-radius:6px;font-size:0.78rem;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+  .btn-copy:hover{background:#555;}
+
+  .toast{position:fixed;bottom:24px;right:24px;background:#222;color:#fff;
+    padding:12px 20px;border-radius:8px;font-size:0.82rem;opacity:0;
+    transition:opacity .3s;pointer-events:none;z-index:999;}
+  .toast.show{opacity:1;}
+
+  @media(max-width:700px){.wrap{grid-template-columns:1fr;}.list-panel{grid-column:1;}}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>🎪 K-FESTIVAL 축제 등록 관리</h1>
+  <span>Admin Panel</span>
+</div>
+
+<div class="wrap">
+
+  <!-- 등록 폼 -->
+  <div class="panel">
+    <div class="panel-title">➕ 새 축제 등록</div>
+
+    <label>축제명 *</label>
+    <input type="text" id="f-name" placeholder="예) 제25회 담양 대나무 축제">
+
+    <label>날짜 *</label>
+    <input type="text" id="f-date" placeholder="예) 2026.05.01 ~ 05.05">
+
+    <label>장소 *</label>
+    <input type="text" id="f-loc" placeholder="예) 전남 담양군 일원">
+
+    <label>지역 분류 *</label>
+    <select id="f-region">
+      <option value="서울">서울</option>
+      <option value="경기">경기</option>
+      <option value="인천">인천</option>
+      <option value="강원">강원</option>
+      <option value="충청">충청</option>
+      <option value="전라">전라</option>
+      <option value="경상">경상</option>
+      <option value="부산">부산</option>
+      <option value="제주">제주</option>
+    </select>
+
+    <label>표지 이미지 URL (없으면 빈칸)</label>
+    <input type="url" id="f-thumb" placeholder="https://...">
+
+    <label>배경 색상 (이미지 없을 때)</label>
+    <select id="f-color">
+      <option value="linear-gradient(160deg,#c0392b,#8b1a1a)">🔴 레드</option>
+      <option value="linear-gradient(160deg,#1a4a8a,#0d2a5c)">🔵 블루</option>
+      <option value="linear-gradient(160deg,#2d6a27,#1a4a1a)">🟢 그린</option>
+      <option value="linear-gradient(160deg,#6a1a8a,#3a0d5c)">🟣 퍼플</option>
+      <option value="linear-gradient(160deg,#c8922a,#8b6010)">🟡 골드</option>
+      <option value="linear-gradient(160deg,#1a7a8a,#0d4a5c)">🩵 틸</option>
+      <option value="linear-gradient(160deg,#8a5a1a,#5c3a0d)">🟤 브라운</option>
+    </select>
+
+    <div class="check-row" style="margin-top:14px;">
+      <label><input type="checkbox" id="f-new"> NEW 배지</label>
+      <label><input type="checkbox" id="f-pick"> PICK 배지</label>
+    </div>
+
+    <button class="btn-submit" onclick="addFestival()">등록하기</button>
+  </div>
+
+  <!-- 미리보기 -->
+  <div class="panel">
+    <div class="panel-title">👁 미리보기</div>
+    <div id="preview" style="border-radius:10px;overflow:hidden;aspect-ratio:3/4;background:#eee;display:flex;align-items:flex-end;position:relative;">
+      <div id="prev-bg" style="position:absolute;inset:0;background:linear-gradient(160deg,#c0392b,#8b1a1a);"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.75),transparent 60%);"></div>
+      <div style="position:relative;padding:14px;z-index:2;width:100%;">
+        <div id="prev-name" style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:6px;">축제명</div>
+        <div id="prev-date" style="font-size:0.72rem;color:rgba(255,255,255,.85);">🗓 날짜</div>
+        <div id="prev-loc" style="font-size:0.72rem;color:rgba(255,255,255,.7);">📍 장소</div>
+      </div>
+      <div id="prev-badges" style="position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:5px;z-index:3;"></div>
+    </div>
+
+    <div class="copy-section" style="margin-top:16px;">
+      <div class="panel-title" style="font-size:0.82rem;">📋 코드 복사 (festival.html FESTIVALS 배열용)</div>
+      <div class="copy-box" id="codeBox">// 등록 후 자동 생성</div>
+      <button class="btn-copy" onclick="copyCode()">복사하기</button>
+    </div>
+  </div>
+
+  <!-- 등록된 축제 목록 -->
+  <div class="panel list-panel">
+    <div class="panel-title">📋 등록된 축제 목록 <span style="font-size:0.78rem;color:var(--light);font-weight:400;" id="listCount"></span></div>
+    <div id="festivalList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'admin_festivals';
+let festivals = [];
+try{ festivals = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); } catch(e){}
+
+// 실시간 미리보기
+['f-name','f-date','f-loc','f-color','f-thumb','f-new','f-pick'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updatePreview);
+  document.getElementById(id).addEventListener('change', updatePreview);
+});
+
+function updatePreview(){
+  const name = document.getElementById('f-name').value || '축제명';
+  const date = document.getElementById('f-date').value || '날짜';
+  const loc  = document.getElementById('f-loc').value  || '장소';
+  const color= document.getElementById('f-color').value;
+  const thumb= document.getElementById('f-thumb').value;
+  const isNew= document.getElementById('f-new').checked;
+  const isPick=document.getElementById('f-pick').checked;
+
+  document.getElementById('prev-name').textContent = name;
+  document.getElementById('prev-date').textContent = '🗓 ' + date;
+  document.getElementById('prev-loc').textContent  = '📍 ' + loc;
+  const bg = document.getElementById('prev-bg');
+  if(thumb){ bg.style.background=''; bg.style.backgroundImage=`url('${thumb}')`; bg.style.backgroundSize='cover'; bg.style.backgroundPosition='center'; }
+  else { bg.style.backgroundImage=''; bg.style.background=color; }
+
+  let badges = '';
+  if(isNew)  badges += '<span style="background:#c0392b;color:#fff;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:4px;">NEW</span>';
+  if(isPick) badges += '<span style="background:#c8922a;color:#fff;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:4px;">PICK</span>';
+  document.getElementById('prev-badges').innerHTML = badges;
+
+  // 코드 생성
+  const entry = makeFestivalObj(Date.now());
+  document.getElementById('codeBox').textContent =
+    `{id:${Date.now()},name:"${entry.name}",date:"${entry.date}",loc:"${entry.loc}",region:"${entry.region}",thumb:${entry.thumb?`"${entry.thumb}"`:'null'},bgColor:"${entry.bgColor}",isNew:${entry.isNew},isPick:${entry.isPick}},`;
+}
+
+function makeFestivalObj(id){
+  return {
+    id,
+    name: document.getElementById('f-name').value.trim(),
+    date: document.getElementById('f-date').value.trim(),
+    loc:  document.getElementById('f-loc').value.trim(),
+    region: document.getElementById('f-region').value,
+    thumb: document.getElementById('f-thumb').value.trim() || null,
+    bgColor: document.getElementById('f-color').value,
+    isNew:  document.getElementById('f-new').checked,
+    isPick: document.getElementById('f-pick').checked,
+  };
+}
+
+function addFestival(){
+  const name = document.getElementById('f-name').value.trim();
+  const date = document.getElementById('f-date').value.trim();
+  const loc  = document.getElementById('f-loc').value.trim();
+  if(!name || !date || !loc){ showToast('⚠️ 축제명, 날짜, 장소는 필수입니다.'); return; }
+
+  const f = makeFestivalObj(Date.now());
+  festivals.unshift(f);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(festivals));
+
+  // festival.html이 같은 탭에 열려있으면 postMessage
+  if(window.opener) window.opener.postMessage({type:'ADD_FESTIVAL', festival:f}, '*');
+
+  renderList();
+  showToast('✅ 등록 완료!');
+  // 폼 초기화
+  ['f-name','f-date','f-loc','f-thumb'].forEach(id=> document.getElementById(id).value='');
+  document.getElementById('f-new').checked = false;
+  document.getElementById('f-pick').checked = false;
+  updatePreview();
+}
+
+function deleteFestival(id){
+  festivals = festivals.filter(f=>f.id!==id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(festivals));
+  renderList();
+  showToast('🗑 삭제되었습니다.');
+}
+
+function renderList(){
+  const el = document.getElementById('festivalList');
+  document.getElementById('listCount').textContent = `(${festivals.length}건)`;
+  if(!festivals.length){
+    el.innerHTML='<div class="empty-msg">등록된 축제가 없습니다.</div>'; return;
+  }
+  el.innerHTML = festivals.map(f=>`
+    <div class="festival-item">
+      <div class="fi-color" style="background:${f.bgColor||'#888'}"></div>
+      <div class="fi-info">
+        <div class="fi-name">${f.name}</div>
+        <div class="fi-meta">🗓 ${f.date}<br>📍 ${f.loc}</div>
+        <div class="fi-badges">
+          <span class="fi-badge badge-region">${f.region}</span>
+          ${f.isNew?'<span class="fi-badge badge-new">NEW</span>':''}
+          ${f.isPick?'<span class="fi-badge badge-pick">PICK</span>':''}
+        </div>
+      </div>
+      <button class="fi-del" onclick="deleteFestival(${f.id})">삭제</button>
+    </div>`).join('');
+}
+
+function copyCode(){
+  const text = document.getElementById('codeBox').textContent;
+  navigator.clipboard.writeText(text).then(()=>showToast('📋 복사됨!')).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    showToast('📋 복사됨!');
+  });
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+renderList();
+updatePreview();
+</script>
+</body>
+</html>
